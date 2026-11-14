@@ -1,0 +1,10 @@
+services:
+  glados-tts:
+    build: ./glados_tts
+    image: glados-tts:1.0.0
+    container_name: glados-tts
+    restart: unless-stopped
+    ports:
+      - "10200:10200"
+    volumes:
+      - ./data:/data   # optional: data/options.json with threads / length_scale / debug

@@ -1,0 +1,21 @@
+name: GLaDOS TTS
+version: "1.0.0"
+slug: glados_tts
+description: Русский голос GLaDOS (TeraTTS VITS) через Wyoming, с нормализацией текста и ударениями silero
+url: https://github.com/darklion84/glados-tts
+arch:
+  - amd64
+startup: services
+boot: auto
+ports:
+  10200/tcp: 10202
+ports_description:
+  10200/tcp: Wyoming (внутри HA — имя хоста аддона и порт 10200, снаружи — IP HA и порт 10202)
+options:
+  threads: 2
+  length_scale: 1.2
+  debug: false
+schema:
+  threads: int(1,16)
+  length_scale: float(0.5,2.0)
+  debug: bool

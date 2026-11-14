@@ -1,0 +1,8 @@
+# torch (CPU build) is installed separately in the Dockerfile from download.pytorch.org
+onnxruntime==1.31.1
+numpy==2.5.4
+num2words==0.5.14
+silero-stress==1.5
+wyoming==1.11.0
+regex==2026.11.7
+eng_to_ipa==0.0.2
