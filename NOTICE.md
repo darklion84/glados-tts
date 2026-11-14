@@ -1,5 +1,8 @@
 # Third-party components
 
+The MIT license in [LICENSE](LICENSE) covers the code of this repository except
+`glados_tts/third_party/` and the components below, which keep their own terms.
+
 | Component | Where | Terms |
 |---|---|---|
 | **GLaDOS voice model and pronunciation dictionary** — [TeraTTS/glados2-g2p-vits](https://huggingface.co/TeraTTS/glados2-g2p-vits) | downloaded at build time, **not included** | No license stated by the authors. GLaDOS is a character owned by Valve. Personal, non-commercial use only. |
