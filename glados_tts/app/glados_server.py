@@ -37,7 +37,13 @@ from wyoming.audio import AudioChunk, AudioStart, AudioStop  # noqa: E402
 from wyoming.event import Event  # noqa: E402
 from wyoming.info import Attribution, Describe, Info, TtsProgram, TtsVoice  # noqa: E402
 from wyoming.server import AsyncEventHandler, AsyncServer  # noqa: E402
-from wyoming.tts import Synthesize  # noqa: E402
+from wyoming.tts import (  # noqa: E402
+    Synthesize,
+    SynthesizeChunk,
+    SynthesizeStart,
+    SynthesizeStop,
+    SynthesizeStopped,
+)
 from wyoming_piper.english_normalizer import EnglishNormalizer  # noqa: E402
 from wyoming_piper.russian_normalizer import RussianNormalizer  # noqa: E402
 
@@ -143,27 +149,68 @@ def split_sentences(text: str) -> list[str]:
     return [s.strip() for s in _SENTENCE_SPLIT.split(text) if s and s.strip()]
 
 
+def take_sentences(buffer: str) -> tuple[list[str], str]:
+    """Streamed text so far -> (finished sentences, unfinished tail).
+
+    A sentence is finished only when whitespace follows its end mark: the next chunk may still
+    continue "3." into "3.5".
+    """
+    parts = _SENTENCE_SPLIT.split(buffer)
+    return [s.strip() for s in parts[:-1] if s and s.strip()], parts[-1]
+
+
 class Handler(AsyncEventHandler):
+    """One connection. Audio always goes out sentence by sentence, as soon as each is ready.
+
+    Text arrives either whole (Synthesize) or as a stream (SynthesizeStart / SynthesizeChunk /
+    SynthesizeStop) while the LLM is still writing: then every finished sentence is spoken at once.
+    """
+
     def __init__(self, info: Info, engine: Engine, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.info_event = info.event()
         self.engine = engine
+        self.streaming = False
+        self.buffer = ""
+        self.audio_started = False
+
+    async def _speak(self, sentence: str) -> None:
+        pcm = await asyncio.get_running_loop().run_in_executor(None, self.engine.synthesize, sentence)
+        if not self.audio_started:
+            await self.write_event(AudioStart(rate=RATE, width=WIDTH, channels=CHANNELS).event())
+            self.audio_started = True
+        for i in range(0, len(pcm), 8192):
+            await self.write_event(
+                AudioChunk(audio=pcm[i:i + 8192], rate=RATE, width=WIDTH, channels=CHANNELS).event()
+            )
+
+    async def _finish(self) -> None:
+        if not self.audio_started:  # nothing to say: clients still expect a start before the stop
+            await self.write_event(AudioStart(rate=RATE, width=WIDTH, channels=CHANNELS).event())
+        await self.write_event(AudioStop().event())
+        self.audio_started = False
 
     async def handle_event(self, event: Event) -> bool:
         if Describe.is_type(event.type):
             await self.write_event(self.info_event)
-            return True
-        if Synthesize.is_type(event.type):
-            text = Synthesize.from_event(event).text or ""
-            loop = asyncio.get_running_loop()
-            await self.write_event(AudioStart(rate=RATE, width=WIDTH, channels=CHANNELS).event())
-            for sentence in split_sentences(text):
-                pcm = await loop.run_in_executor(None, self.engine.synthesize, sentence)
-                for i in range(0, len(pcm), 8192):
-                    await self.write_event(
-                        AudioChunk(audio=pcm[i:i + 8192], rate=RATE, width=WIDTH, channels=CHANNELS).event()
-                    )
-            await self.write_event(AudioStop().event())
+        elif Synthesize.is_type(event.type):
+            # A streaming client repeats the whole text in one Synthesize for old servers: skip it.
+            if not self.streaming:
+                for sentence in split_sentences(Synthesize.from_event(event).text or ""):
+                    await self._speak(sentence)
+                await self._finish()
+        elif SynthesizeStart.is_type(event.type):
+            self.streaming, self.buffer, self.audio_started = True, "", False
+        elif SynthesizeChunk.is_type(event.type) and self.streaming:
+            sentences, self.buffer = take_sentences(self.buffer + SynthesizeChunk.from_event(event).text)
+            for sentence in sentences:
+                await self._speak(sentence)
+        elif SynthesizeStop.is_type(event.type) and self.streaming:
+            for sentence in split_sentences(self.buffer):
+                await self._speak(sentence)
+            await self._finish()
+            await self.write_event(SynthesizeStopped().event())
+            self.streaming, self.buffer = False, ""
         return True
 
 
@@ -183,7 +230,7 @@ def main() -> None:
     info = Info(tts=[TtsProgram(
         name="glados-tts", attribution=attribution, installed=True,
         description="TeraTTS GLaDOS (VITS) with mitrokun normalization and silero-stress",
-        version="1.0.0",
+        version="1.1.0", supports_synthesize_streaming=True,
         voices=[TtsVoice(name=VOICE, attribution=attribution, installed=True,
                          description="GLaDOS (ru)", version="1.0.0", languages=["ru"])],
     )])

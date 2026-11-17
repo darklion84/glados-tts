@@ -1,5 +1,5 @@
 name: GLaDOS TTS
-version: "1.0.0"
+version: "1.1.0"
 slug: glados_tts
 description: Русский голос GLaDOS (TeraTTS VITS) через Wyoming, с нормализацией текста и ударениями silero
 url: https://github.com/darklion84/glados-tts
