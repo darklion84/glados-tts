@@ -1,0 +1,44 @@
+name: STT Filter (Parakeet)
+version: "1.1.2"
+slug: stt_filter
+description: Wyoming-посредник — чистит ответ распознавания от английских «пустышек», узнаёт говорящего по голосу и отвечает положенным ему голосом (любой Wyoming-синтезатор — Piper, GLaDOS и другие)
+url: https://github.com/darklion84/glados-tts
+arch:
+  - amd64
+  - aarch64
+startup: services
+boot: auto
+# sensor.voice_speaker и очистка хранилища озвучки при смене голоса
+homeassistant_api: true
+# /config: speakers.json (образцы голосов) и utterances.jsonl (отпечатки запросов)
+map:
+  - addon_config:rw
+options:
+  # Wyoming-сервер распознавания, перед которым стоит посредник
+  upstream_host: core-whisper
+  upstream_port: 10300
+  max_latin_words: 1
+  speaker_threshold: 0.57
+  speaker_margin: 0.05
+  # Голоса — любые Wyoming-синтезаторы; default_voice отвечает всем, кого не узнали
+  default_voice: piper
+  voices:
+    - name: piper
+      host: core-piper
+      port: 10200
+  # Кому какой голос, например: [{speaker: owner, voice: glados}]
+  speaker_voices: []
+schema:
+  upstream_host: str
+  upstream_port: port
+  max_latin_words: int(0,10)
+  speaker_threshold: float(0,1)
+  speaker_margin: float(0,1)
+  default_voice: str
+  voices:
+    - name: str
+      host: str
+      port: port
+  speaker_voices:
+    - speaker: str
+      voice: str

@@ -1,7 +1,7 @@
 # Third-party components
 
 The MIT license in [LICENSE](LICENSE) covers the code of this repository except
-`glados_tts/third_party/` and the components below, which keep their own terms.
+`glados_tts/third_party/` and the components below (GLaDOS TTS first, then the STT Filter add-on), which keep their own terms.
 
 | Component | Where | Terms |
 |---|---|---|
@@ -13,3 +13,6 @@ The MIT license in [LICENSE](LICENSE) covers the code of this repository except
 | [Wyoming](https://github.com/OHF-Voice/wyoming) | pip | MIT |
 | [num2words](https://github.com/savoirfairelinux/num2words) | pip | LGPL-2.1 |
 | [onnxruntime](https://github.com/microsoft/onnxruntime), [PyTorch](https://github.com/pytorch/pytorch) | pip | MIT / BSD-style (see the PyTorch repository) |
+| **Speaker embedding model** (STT Filter) — CAM++ `speech_campplus_sv_zh_en_16k-common_advanced` from [3D-Speaker](https://github.com/modelscope/3D-Speaker), ONNX export from the [sherpa-onnx releases](https://github.com/k2-fsa/sherpa-onnx/releases/tag/speaker-recongition-models) | downloaded at build time, **not included** | Apache-2.0 |
+| [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (STT Filter) | pip | Apache-2.0 |
+| [NumPy](https://github.com/numpy/numpy) | pip | BSD-3-Clause |
